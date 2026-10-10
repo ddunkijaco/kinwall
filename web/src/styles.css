@@ -2728,6 +2728,10 @@ button.board-empty-tap { display: block; width: 100%; text-align: left; backgrou
 .where-badge.where-out { color: var(--text-dim); }
 .profile-where { margin: 4px 0 6px; }
 .ha-chips { margin-bottom: 14px; }
+/* The header avatars: where someone is, as an emoji on the avatar's corner (inside the row's padding, so it isn't clipped). */
+.member-avatar { position: relative; }
+.where-dot { position: absolute; right: -4px; bottom: -4px; width: calc(0.5 * var(--avatar)); height: calc(0.5 * var(--avatar)); min-width: 22px; min-height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--card); box-shadow: var(--shadow); font-size: max(13px, calc(0.3 * var(--avatar))); line-height: 1; z-index: 1; }
+.family-row-name .where-badge { margin-left: 6px; vertical-align: middle; font-size: 0.75rem; padding: 2px 8px; }
 .board-tidbit { grid-area: tidbit; min-height: auto; } /* a second and third card set their own area inline */
 .board-tidbit > .snap-heading { margin-bottom: 4px; }
 /* Board layout editor (BoardEditor.tsx): the columns side by side on a wide screen, each card as tall as its share. */

@@ -56,6 +56,8 @@ import { clockTimeZone } from './timezone.ts'
 import { Brand } from './Brand.tsx'
 import { applyScreenScale, appliedScale } from './screenScale.ts'
 import { Face, FacePic } from './Face'
+import { PlaceBadge, PlaceDot, useWhereabouts } from './Whereabouts.tsx'
+import { placeOf, placeSentence } from './whereabouts.ts'
 
 const NAV_ITEMS = [
   { key: 'calendar', href: '#/calendar', label: 'Home', Icon: HomeIcon }, // the route keeps its old name: pushes, widgets and Home Assistant link to it
@@ -825,6 +827,8 @@ function AdminSetupScreen({ token }: { token: string }) {
 /** Header avatars: a tap opens that member's snapshot (their day / week). "Show only them on the
  * calendar" lives inside it now; the avatar keeps its ring while the calendar is filtered to them. */
 function MemberAvatars({ members, selectedMemberId }: { members: Member[]; selectedMemberId: string | null }) {
+  const { refreshTick } = useApp()
+  const where = useWhereabouts(refreshTick) // where everyone is (Home Assistant): an emoji on each avatar's corner
   const [open, setOpen] = useState<Member | null>(null)
   useEffect(() => {
     const close = () => setOpen(null) // an idle wall goes back to the plain calendar
@@ -833,19 +837,24 @@ function MemberAvatars({ members, selectedMemberId }: { members: Member[]; selec
   }, [])
   return (
     <div className={`member-filter-row ${members.length >= 4 ? 'many' : ''}`} role="group" aria-label="Family members">
-      {members.map(m => (
-        <button
-          key={m.id}
-          aria-haspopup="dialog"
-          className={`member-avatar ${selectedMemberId && selectedMemberId !== m.id ? 'dim' : ''} ${selectedMemberId === m.id ? 'selected' : ''}${m.picture ? ' face-has-pic' : ''}`}
-          style={{ background: m.color, color: inkFor(m.color) }}
-          onClick={() => setOpen(m)}
-          aria-label={`${m.name}'s day${selectedMemberId === m.id ? ' (calendar shows only them)' : ''}`}
-        >
-          {m.avatar || m.name[0]}
-          <FacePic m={m} />
-        </button>
-      ))}
+      {members.map(m => {
+        const place = placeOf(where, m.id)
+        return (
+          <button
+            key={m.id}
+            aria-haspopup="dialog"
+            className={`member-avatar ${selectedMemberId && selectedMemberId !== m.id ? 'dim' : ''} ${selectedMemberId === m.id ? 'selected' : ''}${m.picture ? ' face-has-pic' : ''}`}
+            style={{ background: m.color, color: inkFor(m.color) }}
+            onClick={() => setOpen(m)}
+            aria-label={`${m.name}'s day${selectedMemberId === m.id ? ' (calendar shows only them)' : ''}${place ? `. ${placeSentence(m.name, place)}` : ''}`}
+            title={place ? placeSentence(m.name, place) : undefined}
+          >
+            {m.avatar || m.name[0]}
+            <FacePic m={m} />
+            {place && <PlaceDot place={place} />}
+          </button>
+        )
+      })}
       {open && <SnapshotSheet member={members.find(m => m.id === open.id) ?? open} onClose={() => setOpen(null)} />}
     </div>
   )
@@ -889,7 +898,8 @@ function FamilySheet({ name, members, selectedMemberId, onClose, onFilter, onSna
   name: string; members: Member[]; selectedMemberId: string | null
   onClose: () => void; onFilter: (id: string | null) => void; onSnapshot: (m: Member) => void
 }) {
-  const { settings } = useApp()
+  const { settings, refreshTick } = useApp()
+  const where = useWhereabouts(refreshTick)
   return (
     <Sheet title={name} onClose={onClose}>
       <div className="family-list">
@@ -897,7 +907,7 @@ function FamilySheet({ name, members, selectedMemberId, onClose, onFilter, onSna
           <div key={m.id} className="family-row-wrap">
             <button className={`family-row ${m.id === selectedMemberId ? 'on' : ''}`} aria-haspopup="dialog" onClick={() => onSnapshot(m)}>
               <Face m={m} className={`member-avatar-sm ${m.id === selectedMemberId ? 'selected' : ''}`} aria-hidden="true" />
-              <span className="family-row-name">{m.name}</span>
+              <span className="family-row-name">{m.name}{placeOf(where, m.id) && <> <PlaceBadge place={placeOf(where, m.id)!} name={m.name} /></>}</span>
               {(m.id === selectedMemberId || settings.features.chores) && <span className="family-row-sub">{m.id === selectedMemberId ? 'Calendar shows only them' : `${m.pointsToday} pts today`}</span>}
             </button>
             <button className={`family-pick ${m.id === selectedMemberId ? 'on' : ''}`} aria-pressed={m.id === selectedMemberId}

@@ -25,6 +25,7 @@ On a grown-up's device, open **Settings → Family → Home Assistant**.
 Where it shows:
 
 * **The Board**: a row of badges in the clock's card. In a [Board layout](../settings/this-display.md) you can place a **Where everyone is** card instead. Either one hides itself when nobody's whereabouts are known.
+* **The family's faces at the top**: 🏠, 📍 or 🚶 on the corner of each person's avatar. On a phone, tap the family's name to see each person with their place.
 * **Profiles**: a badge under the person's name.
 
 Kinwall reads Home Assistant when a screen asks and keeps the answer for a minute, so open boards update about once a minute.

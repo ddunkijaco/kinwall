@@ -2,7 +2,7 @@
 // screen reader hears, and when the "Where everyone is" card shows.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { placeBadge, placeSentence, whereaboutsRows } from '../src/whereabouts.ts'
+import { placeBadge, placeOf, placeSentence, whereaboutsRows } from '../src/whereabouts.ts'
 
 const members = [
   { id: 'm1', name: 'Alex', sort: 0 },
@@ -35,4 +35,11 @@ test('whereaboutsRows: members in family order, only those with known whereabout
 test('whereaboutsRows: nothing known (or nothing loaded) is no rows, so the card hides', () => {
   assert.deepEqual(whereaboutsRows({ members: [] }, members), [])
   assert.deepEqual(whereaboutsRows(null, members), [])
+})
+
+test("placeOf: one member's place for their avatar, or nothing when it isn't known", () => {
+  const w = { members: [{ memberId: 'm2', place: { kind: 'place' as const, name: 'Work' } }] }
+  assert.deepEqual(placeOf(w, 'm2'), { kind: 'place', name: 'Work' })
+  assert.equal(placeOf(w, 'm3'), null)
+  assert.equal(placeOf(null, 'm2'), null)
 })

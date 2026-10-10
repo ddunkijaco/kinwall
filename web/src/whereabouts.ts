@@ -29,3 +29,8 @@ export function whereaboutsRows<M extends MemberLike>(w: Whereabouts | null, mem
     return p ? [{ member, place: p, badge: placeBadge(p), sentence: placeSentence(member.name, p) }] : []
   })
 }
+
+/** One member's place (their avatar's badge), or null when it isn't known. */
+export function placeOf(w: Whereabouts | null, memberId: string): Place | null {
+  return w?.members.find(x => x.memberId === memberId)?.place ?? null
+}
