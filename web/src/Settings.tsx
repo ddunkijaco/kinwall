@@ -19,6 +19,7 @@ import CalendarFilterSheet, { HiddenEventsSheet } from './CalendarFilterSheet.ts
 import { filterSummary } from './calendarFilter.ts'
 import TimezoneField from './TimezoneField.tsx'
 import PickField, { PickSwatch } from './PickField.tsx'
+import { HaPersonField, HomeAssistantSettings } from './HomeAssistantSettings.tsx'
 import { AnyEmojiField, AvatarPicker } from './AnyEmojiField.tsx'
 import { isValidAvatar } from './emoji.ts'
 import { accentFill, colorName, inkFor } from './color.ts'
@@ -199,6 +200,8 @@ export default function SettingsView() {
         </AccordionCtx.Provider>}
         {current === 'family' && <>
           <MembersSection members={members} onChanged={reloadCore} toast={toast} canManage={!isDisplay} />
+          {/* Grown-ups only: the routes refuse wall screens and kids' devices (auth.ts). */}
+          {!isDisplay && <Section id="home-assistant" title="Home Assistant" keywords={['Where everyone is', 'home', 'away', 'places']}><HomeAssistantSettings /></Section>}
           <CategoriesSection categories={categories} onChanged={reloadCore} toast={toast} canManage={!isDisplay} />
           {/* Chore rules are family settings a display key can't save (auth.ts), like General's family group. */}
           {!isDisplay && settings.features.chores && <ChoreSettingsSection settings={settings} onSaved={reloadCore} toast={toast} />}
@@ -2070,6 +2073,7 @@ function MemberEditSheet({ member, canDelete, onClose, onSaved, toast }: { membe
       {canDelete && <TransitionRemindersField name={name.trim() || 'this person'} value={transitions} onChange={setTransitions} />}
       {canDelete && checkIns && <TempCheckField member={member} name={name.trim() || 'this person'} value={tempCheck} onChange={setTempCheck} toast={toast} />}
       {canDelete && checkIns && member && !member.grownUp && <PrivateJournalField member={member} toast={toast} />}
+      {canDelete && member && <HaPersonField member={member} />}
       {canDelete && member && <NewscastMemberField member={member} toast={toast} />}
     </Sheet>
   )

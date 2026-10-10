@@ -222,6 +222,7 @@ const DISPLAY_ALLOWED: { method: string; pattern: RegExp }[] = [
   { method: 'GET', pattern: /^\/api\/me$/ },
   { method: 'GET', pattern: /^\/api\/media-token$/ }, // what this device's <img src>s carry instead of its key
   { method: 'GET', pattern: /^\/api\/members$/ },
+  { method: 'GET', pattern: /^\/api\/whereabouts$/ }, // routes/home-assistant.ts: walls get none unless the family turns them on
   { method: 'GET', pattern: /^\/api\/calendars$/ },
   { method: 'GET', pattern: /^\/api\/events(\/[^/]+)?$/ },
   { method: 'GET', pattern: /^\/api\/events\/[^/]+\/items$/ },

@@ -17,6 +17,7 @@ Each member has:
 * **Transition reminders** (admin only, off by default): see [below](#transition-reminders).
 * **Temp check** (admin only, off by default): daily questions at the end of their day. See [below](#temp-check).
 * **Featured in Newscast** and **Can post in Newscast** (admin only, both on by default): see [below](#newscast).
+* **Home Assistant person** (admin only, once [Home Assistant](#home-assistant) is connected): the Home Assistant person whose place shows as theirs in [Where everyone is](../using/whereabouts.md). Each Home Assistant person links to one member.
 
 **Add member** and editing are admin only. On a display, the list is read-only. Deleting a member ("Their chores and tags are unassigned") removes them from calendars, chores and event tags. It doesn't delete those items.
 
@@ -76,6 +77,18 @@ Two switches per person, saved right away (not shown while [Newscast](../using/n
 * **Can post in Newscast**: off pauses their posting for now. Their share card says "Leo is taking a break from posting for now. A parent can turn it back on in Settings." They still see Newscast and react. A parent can also do this from one of their posts (**⋯ → Pause posting for Leo**, and **Let Leo post again**).
 
 API: `newscastNotFeatured` and `newscastPostingPaused`, lists of member ids, on `GET` / `PATCH /api/settings` (admin keys; a `PATCH` sends the whole list). Both are in [exports](../your-data/export-import.md).
+
+## Home Assistant
+
+On a grown-up's device, below the members. Shows [where everyone is](../using/whereabouts.md) from your Home Assistant: Home, a place you chose, or Out.
+
+* **Use this Home Assistant** (the [add-on](../getting-started/home-assistant-add-on.md) only) or **Connect Home Assistant** with its address and a long-lived access token. Hosted Kinwall needs a public `https` address; self-hosted can use a home-network one. The token is encrypted and never shown again.
+* **Places shown by name**: the Home Assistant zones shown by name. Home always shows; anywhere else reads Out. New zones stay hidden until you add them.
+* **Show where everyone is on wall screens** (off by default): wall screens show nothing about where anyone is until it's on. API: `whereaboutsOnWalls`.
+* **Can't reach Home Assistant. Reconnect** shows when Kinwall can't reach Home Assistant or it refused the token. **Change address or token** keeps the links and places.
+* **More… → Disconnect Home Assistant** forgets the token, every member's link and the places.
+
+Connected apps (the API with an app's token, MCP) can't see or change any of it. API: `GET`/`PUT`/`DELETE /api/home-assistant`, `GET /api/home-assistant/people` and `/zones`, `PUT /api/home-assistant/shown-places`, `PUT`/`DELETE /api/home-assistant/links/{memberId}`, and `GET /api/whereabouts`.
 
 ## Categories
 

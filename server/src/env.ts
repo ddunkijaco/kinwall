@@ -28,6 +28,8 @@ export type Env = ApnsEnv & {
   CLIENT_IP?: (req: Request) => string | null; // the caller's address for per-address rate limits (node.ts: socket peer, X-Forwarded-For only with TRUST_PROXY=1). Unset: cf-connecting-ip, which Cloudflare hosts always set; see ratelimit.ts
   ALLOW_PRIVATE_FEED_URLS?: string; // '1' lets ICS/CalDAV reach LAN hosts (see outbound.ts)
   ALLOW_PRIVATE_WEBHOOK_URLS?: string; // '1' lets webhooks target LAN receivers (Home Assistant add-on sets it)
+  ALLOW_PRIVATE_HA_URLS?: string; // '1' lets the Home Assistant connection reach the home network (node.ts sets it: self-hosted and the add-on; hosted never does)
+  SUPERVISOR_TOKEN?: string; // the Home Assistant add-on's Supervisor token (node.ts, add-on only): "Use this Home Assistant" in routes/home-assistant.ts
   OUTBOUND_FETCH?: Fetch; // a fetch that refuses private addresses at connect time, for person-supplied URLs (node.ts: outbound-node.ts). Unset (Workers): the literal-host check only; see outbound.ts
   REQUIRE_PASSKEY_SETUP?: string; // '1': setup wizard can't skip the passkey (hosts with no other way back in); see routes/setup.ts
   HOST_PORTAL_URL?: string;

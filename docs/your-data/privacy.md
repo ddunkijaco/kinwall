@@ -8,6 +8,7 @@ These are encrypted with `ENCRYPTION_KEY`, using the row ID as additional data s
 
 * Calendar account credentials: Google/Microsoft refresh tokens and CalDAV passwords.
 * The [Google Photos](../using/photos.md#google-photos) sign-in (its tokens, and the one-time code while connecting).
+* The [Home Assistant](../using/whereabouts.md) long-lived access token. (Its address is kept as typed, to show in Settings.)
 * Calendar configs, including **ICS feed URLs** (they often contain a secret token).
 * Webhook secrets.
 * Web Push subscription keys, and the VAPID private key.
@@ -141,6 +142,7 @@ Fonts aren't on this list: every typeface is bundled with Kinwall and served by 
 | Google / Microsoft / your CalDAV server | Syncing and writing connected calendars. The calendar sign-in asks only for calendar scopes. |
 | Google Photos | Only once a parent [connects Google Photos](../using/photos.md#google-photos): the **server** lists the picked photos (about hourly while a screen shows them) and fetches each picture to pass it to the screen. See [below](#google-photos). |
 | ICS feed hosts | Fetching subscribed feeds. |
+| Your Home Assistant | Only once a grown-up [connects it](../using/whereabouts.md): the **server** reads Home Assistant's people and zones (at most once a minute while a screen shows where everyone is). Nothing about your family is sent to it. See [below](#home-assistant). |
 | Browser push services (Apple, Google, Mozilla) | Notification payloads, encrypted end to end with the device's keys (RFC 8291). |
 | Your webhook URLs | Change events you subscribed to. |
 | [Open-Meteo](https://open-meteo.com) (`api.open-meteo.com`, `geocoding-api.open-meteo.com`) | Only if a weather location is set: the **server** fetches the forecast for its coordinates (at most hourly) and looks up place names you search for in Settings → General. Your device's address is not sent; no account or key is used. |
@@ -161,6 +163,17 @@ Fonts aren't on this list: every typeface is bundled with Kinwall and served by 
 * **Who can use it:** parent devices connect, change albums and disconnect. Wall screens and kids' devices can only show the pictures.
 * **Disconnect** (in the family's Night settings) deletes the Photos device in your Google account, cancels the permission and deletes everything above. You can also remove Kinwall under your Google Account's **Security → Third-party apps & services**; screens then stop showing Google Photos and parents see **Reconnect Google Photos**.
 * Tokens and codes are never logged or returned by the API.
+
+### Home Assistant
+
+[Where everyone is](../using/whereabouts.md) is off until a grown-up connects Home Assistant.
+
+* **What Kinwall reads:** each Home Assistant person's state (home, away, or the zone they're in) and each zone's name. Home Assistant's answer also has coordinates; Kinwall drops them on arrival and never keeps or shows them.
+* **What Kinwall stores:** the address, the token (encrypted), which member is linked to which Home Assistant person, and which zones are shown by name. **Never whereabouts:** they're kept in the server's memory for a minute, then read again. No history, no "last seen", nothing in the database or backups. None of it is in the [export](export-import.md).
+* **Who sees it:** the family's own phones, tablets and computers. Wall screens only when a grown-up turns on **Show where everyone is on wall screens**. Never connected apps or AI assistants (MCP), webhooks, snapshots, share links, notifications or Newscast.
+* **Places:** only Home and the zones a grown-up chose show by name; everywhere else reads "Out".
+* Home Assistant's answers and the token are never logged or returned by the API.
+* **Disconnect** (Settings → Family → Home Assistant → More…) forgets the token, the links and the chosen places. You can also delete the token in Home Assistant under your profile's **Security**.
 
 ## Shared recipe links
 

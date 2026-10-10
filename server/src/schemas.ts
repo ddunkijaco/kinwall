@@ -255,7 +255,7 @@ export const TidbitSettingsSchema = z
 // The Board's layouts (web/src/boardLayout.ts): columns of cards, each with how much of its column's
 // height it takes (s/m/l) and how big its text is. A family preset is one a parent saved for every
 // screen to pick; a screen's own layout stays on the device.
-export const BOARD_CARDS = ['clock', 'today', 'meals', 'photo', 'coming', 'due', 'chores', 'tidbit', 'tidbit2', 'tidbit3', 'checklist'] as const;
+export const BOARD_CARDS = ['clock', 'today', 'meals', 'photo', 'coming', 'due', 'chores', 'tidbit', 'tidbit2', 'tidbit3', 'checklist', 'whereabouts'] as const;
 export const MAX_BOARD_PRESETS = 10;
 export const BoardLayoutSchema = z
   .object({
@@ -361,6 +361,7 @@ export const SettingsSchema = z
     aiHealthAccess: z.boolean(), // false (default): MCP and connected apps' OAuth tokens never see or change the Health tracker
     medications: z.boolean().openapi({ description: 'Medication reminders (off by default). Off: the medication routes answer 404; the data is kept.' }),
     medicationNamesOnWalls: z.boolean().openapi({ description: 'Show medicine names and doses on shared wall screens (off by default: "Meds").' }),
+    whereaboutsOnWalls: z.boolean().openapi({ description: 'Show where everyone is (from Home Assistant) on shared wall screens (off by default: walls get no whereabouts).' }),
     newscastNotFeatured: z.array(z.string()).openapi({ description: "Members whose chores, rewards, photos, books, memories and birthday stay out of Newscast (their own announcements still show)." }),
     newscastPostingPaused: z.array(z.string()).openapi({ description: 'Members who can\'t post announcements for now (a parent turns it back on). They still react.' }),
     googlePhotos: z.enum(['off', 'signing-in', 'choosing', 'ready', 'reconnect', 'refused']).optional().openapi({ description: "Google Photos for the Night screen and the Board (GET /api/google-photos). Read-only; not in the export." }),
@@ -419,6 +420,7 @@ export const SettingsPatchSchema = z
     aiHealthAccess: z.boolean().optional(), // the family's own devices only: a connected app gets 403
     medications: z.boolean().optional(), // likewise
     medicationNamesOnWalls: z.boolean().optional(), // likewise
+    whereaboutsOnWalls: z.boolean().optional(), // likewise
     newscastNotFeatured: z.array(z.string()).max(100).optional(), // the whole list
     newscastPostingPaused: z.array(z.string()).max(100).optional(), // the whole list
   })

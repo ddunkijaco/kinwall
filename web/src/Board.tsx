@@ -32,6 +32,8 @@ import { onMinute } from './minuteTick.ts'
 import { clockTimeZone } from './timezone.ts'
 import { Face } from './Face'
 import { ChoreTimerButton } from './ChoreTimer.tsx'
+import { PlaceBadge, useWhereabouts } from './Whereabouts.tsx'
+import { whereaboutsRows } from './whereabouts.ts'
 
 const REFRESH_MS = 10 * 60_000
 // Auto shows the full Chores and Due soon cards only on a board this big (CSS px); smaller boards get the count tiles.
@@ -262,6 +264,7 @@ export default function Board({ show, onTap, chipHost }: { show: (e: EventInstan
   const meds = useDueDoses()
   const medsSlot = useTakeNowSlot(meds)
   const pollSlot = usePollSlot()
+  const where = useWhereabouts(refreshTick)
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -365,8 +368,10 @@ export default function Board({ show, onTap, chipHost }: { show: (e: EventInstan
   // The Checklist card: its list, else the first reusable one; gone (or none), the card goes too.
   const checklistId = layout?.columns.flat().find(c => c.id === 'checklist')?.listId
   const checklist = lists.find(l => l.id === checklistId) ?? (checklistId ? undefined : lists.find(l => l.kind === 'reusable'))
+  // Where everyone is: only while someone's whereabouts are known (Home Assistant, Settings → Family).
+  const whereRows = whereaboutsRows(where, members)
   const can = (a: BoardCardId | 'tiles') => a === 'tiles' ? tiles.length > 0 && !chips : !cardOn(a, f) ? false
-    : a === 'checklist' ? !!checklist : tidbitAreas.includes(a) ? !!tidbits[tidbitAreas.indexOf(a)] : true
+    : a === 'whereabouts' ? whereRows.length > 0 : a === 'checklist' ? !!checklist : tidbitAreas.includes(a) ? !!tidbits[tidbitAreas.indexOf(a)] : true
   const custom = layout && layoutAreas(layout, can)
   const shown = custom ? custom.shown : ['clock', 'tiles', 'today', 'meals', 'photo', 'coming', 'due', 'chores', ...tidbitAreas].filter(a =>
     a === 'due' ? f.lists && full : a === 'chores' ? f.chores && full : can(a as BoardCardId | 'tiles'))
@@ -495,6 +500,18 @@ export default function Board({ show, onTap, chipHost }: { show: (e: EventInstan
               </div>
             )}
           </div>
+          {/* The default arrangement keeps where everyone is in the clock's card, which is never squeezed;
+              a layout gives it a card of its own. */}
+          {!custom && whereRows.length > 0 && (
+            <ul className="board-where-strip" aria-label="Where everyone is">
+              {whereRows.map(r => (
+                <li key={r.member.id}>
+                  <span className="sr-only">{r.sentence}</span>
+                  <span className="board-where-chip" aria-hidden="true"><Avatar m={r.member} /><PlaceBadge place={r.place} /></span>
+                </li>
+              ))}
+            </ul>
+          )}
           {w && (
             <ul className="board-forecast" aria-label="Forecast">
               {w.days.filter(d => d.date > today).slice(0, 4).map(d => (
@@ -508,6 +525,19 @@ export default function Board({ show, onTap, chipHost }: { show: (e: EventInstan
             </ul>
           )}
         </section>}
+
+        {has('whereabouts') && <Card title="Where everyone is" area="whereabouts" density={dense('whereabouts')}>
+          <ul className="snap-list">
+            {whereRows.map(r => (
+              <li key={r.member.id} className="snap-row board-where">
+                <Avatar m={r.member} />
+                <span className="sr-only">{r.sentence}</span>
+                <span className="snap-title" aria-hidden="true">{r.member.name}</span>
+                <span aria-hidden="true"><PlaceBadge place={r.place} /></span>
+              </li>
+            ))}
+          </ul>
+        </Card>}
 
         {has('today') && <Card title="Today" area="today" density={dense('today')} foot={<TodaySlot fixed={fixed} items={todaySlot} />}>
           {(() => {

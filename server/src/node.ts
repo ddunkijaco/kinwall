@@ -62,6 +62,9 @@ if (haOptions) {
   // Home Assistant is the webhook receiver and lives on the same LAN (often the same box).
   process.env.ALLOW_PRIVATE_WEBHOOK_URLS ??= '1';
 }
+// Self-hosted (and the add-on): Home Assistant usually lives on the home network. Hosted runs on
+// Workers, which never sets it, so it takes public https addresses only.
+process.env.ALLOW_PRIVATE_HA_URLS ??= '1';
 
 const DATA_DIR = process.env.DATA_DIR ?? (haOptions ? '/data' : './data');
 const WEB_DIST = join(__dirname, '..', '..', 'web', 'dist');
@@ -138,6 +141,8 @@ const env: Env = {
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
   ALLOW_PRIVATE_FEED_URLS: process.env.ALLOW_PRIVATE_FEED_URLS,
   ALLOW_PRIVATE_WEBHOOK_URLS: process.env.ALLOW_PRIVATE_WEBHOOK_URLS,
+  ALLOW_PRIVATE_HA_URLS: process.env.ALLOW_PRIVATE_HA_URLS,
+  SUPERVISOR_TOKEN: haOptions ? process.env.SUPERVISOR_TOKEN : undefined, // the add-on's, with homeassistant_api: true
   OUTBOUND_FETCH: nodeFetch(guardedLookup()), // person-supplied URLs: refuse names that resolve to private addresses
   WEBAUTHN_RP_ID: process.env.WEBAUTHN_RP_ID,
   SAME_REQUEST: (from, to) => { if (viaIngress.has(from)) viaIngress.add(to); peerOf.set(to, peerOf.get(from)); },

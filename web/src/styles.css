@@ -2716,6 +2716,18 @@ button.board-empty-tap { display: block; width: 100%; text-align: left; backgrou
 .board-photo { grid-area: photo; }
 .board-checklist { grid-area: checklist; }
 .board-checklist-emoji { background: var(--bg-alt); }
+.board-whereabouts { grid-area: whereabouts; }
+.board-where { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.board-where-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.board-where-chip { display: inline-flex; align-items: center; gap: 6px; }
+.board-where-chip .board-avatar { width: 28px; height: 28px; font-size: 0.95rem; }
+.board-where .snap-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Where someone is (Home Assistant): a word and an emoji, so color is never the only signal. */
+.where-badge { display: inline-flex; align-items: center; gap: 4px; flex: none; max-width: 100%; padding: 3px 10px; border-radius: 999px; background: var(--bg-alt); color: var(--text); font-size: 0.8125rem; font-weight: 700; line-height: 1.3; }
+.where-badge > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.where-badge.where-out { color: var(--text-dim); }
+.profile-where { margin: 4px 0 6px; }
+.ha-chips { margin-bottom: 14px; }
 .board-tidbit { grid-area: tidbit; min-height: auto; } /* a second and third card set their own area inline */
 .board-tidbit > .snap-heading { margin-bottom: 4px; }
 /* Board layout editor (BoardEditor.tsx): the columns side by side on a wide screen, each card as tall as its share. */

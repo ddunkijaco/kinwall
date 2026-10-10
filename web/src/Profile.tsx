@@ -20,6 +20,7 @@ import { GivePoints } from './GivePoints.tsx'
 import { useDialog } from './dialog.tsx'
 import { bonusLine } from './bonus.ts'
 import { Face } from './Face'
+import { PlaceBadge, useWhereabouts } from './Whereabouts.tsx'
 
 const PERIODS: { key: StatsPeriod; label: string }[] = [
   { key: 'today', label: 'Today' }, { key: 'week', label: 'Week' }, { key: 'month', label: 'Month' }, { key: 'year', label: 'Year' }, { key: 'all', label: 'All time' },
@@ -36,6 +37,7 @@ export default function Profile({ memberId }: { memberId?: string }) {
   const [stats, setStats] = useState<MemberStats | null>(null)
   const [error, setError] = useState('')
   const [picking, setPicking] = useState(false)
+  const where = useWhereabouts(refreshTick)
 
   useEffect(() => {
     if (!member) return
@@ -52,6 +54,7 @@ export default function Profile({ memberId }: { memberId?: string }) {
   const own = meMemberId === member.id
   const shown = stats?.memberId === member.id && stats.period === period ? stats : null
   const f = settings.features
+  const place = where?.members.find(x => x.memberId === member.id)?.place
 
   return (
     <div className="profile scroll-y" style={{ ['--m' as string]: member.color }}>
@@ -75,6 +78,7 @@ export default function Profile({ memberId }: { memberId?: string }) {
             : <Face m={member} className="profile-avatar" aria-hidden="true" />}
           <div>
             <h2 className="profile-name">{member.name}</h2>
+            {place && <p className="profile-where"><PlaceBadge place={place} name={member.name} /></p>}
             <p className="profile-meta">
               {shown?.birthday && birthdayText(shown.birthday) && <>{birthdayText(shown.birthday)}<br /></>}
               {shown && <>On Kinwall since {MONTHS[Number(shown.joined.slice(5, 7)) - 1]} {shown.joined.slice(0, 4)}</>}

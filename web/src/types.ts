@@ -67,6 +67,7 @@ export interface Settings {
   aiHealthAccess: boolean // false (default): MCP and connected apps can't see or change the Health tracker
   medications: boolean // Medication reminders (off by default; only on with the Health tracker); off hides them everywhere, data kept
   medicationNamesOnWalls: boolean // shared wall screens show medicine names (off: "Meds")
+  whereaboutsOnWalls?: boolean // shared wall screens show where everyone is (off: they get none); absent (older servers) = off
   newscastNotFeatured?: string[] // members whose chores, photos, books and so on stay out of Newscast; absent (older servers) = none
   newscastPostingPaused?: string[] // members who can't post in Newscast for now (a parent turns it back on)
   googlePhotos?: GooglePhotosState // Google Photos for the Night screen and the Board (read-only)
@@ -584,6 +585,19 @@ export interface NewscastItem {
 }
 export interface Newscast { today: string; from: string; to: string; earlier: boolean; items: NewscastItem[] }
 export interface NewscastPostInput { text: string; emoji?: string | null; photoId?: string | null; audience?: 'everyone' | 'grownups'; memberId?: string }
+/** GET /api/home-assistant (grown-ups). The token never comes back. */
+export interface HomeAssistant {
+  connected: boolean
+  url?: string // "This Home Assistant" for the add-on's own
+  via?: 'token' | 'supervisor'
+  problem: 'reconnect' | null // couldn't reach Home Assistant, or it refused the token
+  supervisor: boolean // the add-on with API access: "Use this Home Assistant" is offered
+  privateUrls: boolean // home-network addresses work (self-hosted)
+  shownPlaces: string[] // zone ids shown by name
+}
+export interface HaPerson { id: string; name: string; memberId: string | null }
+export interface HaZone { id: string; name: string; shown: boolean }
+
 /** count and bytes include memoryPhotos (memories' own photos count toward storage too). */
 export type GooglePhotosState = 'off' | 'signing-in' | 'choosing' | 'ready' | 'reconnect' | 'refused'
 /** GET /api/google-photos. Codes and links only on parent devices. */

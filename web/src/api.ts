@@ -12,6 +12,8 @@ import type { CustomScheme } from './skins.ts'
 import type { PasskeyAuthenticator } from './webauthn.ts'
 import type { BasicChoices, Meal, MealInput, OrderItem, ParsedMenuItem, Recipe, RecipeImport, RecipeInput, RecipePreviewResult, RecipeShare, Restaurant, RestaurantInput, ShoppingProjection } from './meal-types.ts'
 import type { Outing, OutingCategory, OutingFeed, OutingFeedInput, OutingIdeas, OutingInput, OutingPile, Poll, PollInput } from './types.ts'
+import type { HaPerson, HaZone, HomeAssistant } from './types.ts'
+import type { Whereabouts } from './whereabouts.ts'
 import type { Contact, ContactCategory, ContactInput, ImportPreviewEntry } from './contact-types.ts'
 import type { ActivityChoreProgress, OnlineTidbits, Plugin, PluginActionItem, PluginCatalogEntry,
   StickerPack, StickerPatch, StickerPlacement, Photo, PhotoQuota, FamilyColoringPage, GooglePhotos, Reward, Redemption, PointAward, PointEntry, MemberStats, StatsPeriod,
@@ -643,6 +645,17 @@ export const api = {
   importPhotos: (zip: File) => MOCK ? mock.importPhotos() : req<{ imported: number; skipped: number }>('api/photos/import', {
     method: 'POST', body: zip, useAdmin: true, headers: { 'Content-Type': 'application/zip' },
   }),
+  // Home Assistant (Settings → Family): grown-ups connect it, link members and pick shown places.
+  // Whereabouts are for every device; a wall screen gets none unless the family turns them on.
+  getWhereabouts: () => MOCK ? mock.getWhereabouts() : req<Whereabouts>('api/whereabouts', { quiet: true }),
+  getHomeAssistant: () => MOCK ? mock.getHomeAssistant() : get<HomeAssistant>('api/home-assistant', true),
+  connectHomeAssistant: (body: { url: string; token: string } | { supervisor: true }) => MOCK ? mock.connectHomeAssistant(body) : put<HomeAssistant>('api/home-assistant', body, true),
+  disconnectHomeAssistant: () => MOCK ? mock.disconnectHomeAssistant() : del<HomeAssistant>('api/home-assistant', true),
+  getHaPeople: () => MOCK ? mock.getHaPeople() : get<{ people: HaPerson[] }>('api/home-assistant/people', true).then(r => r.people),
+  getHaZones: () => MOCK ? mock.getHaZones() : get<{ zones: HaZone[] }>('api/home-assistant/zones', true).then(r => r.zones),
+  setShownPlaces: (zones: string[]) => MOCK ? mock.setShownPlaces(zones) : put<HomeAssistant>('api/home-assistant/shown-places', { zones }, true),
+  linkHaPerson: (memberId: string, personId: string) => MOCK ? mock.linkHaPerson(memberId, personId) : put<{ memberId: string; personId: string }>(`api/home-assistant/links/${encodeURIComponent(memberId)}`, { personId }, true),
+  unlinkHaPerson: (memberId: string) => MOCK ? mock.unlinkHaPerson(memberId) : del<{ ok: boolean }>(`api/home-assistant/links/${encodeURIComponent(memberId)}`, true),
   // Google Photos (Night screen sheet): connecting and disconnecting are for parent devices.
   getGooglePhotos: (useAdmin?: boolean) => MOCK ? mock.getGooglePhotos() : get<GooglePhotos>('api/google-photos', useAdmin),
   connectGooglePhotos: () => MOCK ? mock.connectGooglePhotos() : post<GooglePhotos>('api/google-photos/connect', undefined, true),

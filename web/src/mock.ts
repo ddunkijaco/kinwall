@@ -3,7 +3,7 @@ import { stepsToDial, stepsToWords, telUri } from './dialSteps.ts'
 import type { ActivityChoreProgress, Actor, OnlineTidbits, Plugin, PluginCatalogEntry,
   Account, ApiKey, AppNotification, SecurityEvent, CalendarEntry, Category, Chore, ChoreDay, LibraryChore, LibraryChoreInput, EventInstance, HiddenEvent, LeaderboardEntry, LeaderboardPeriod, List, ListGroup,
   Newscast, NewscastItem, NewscastPostInput, NewscastReaction,
-  Photo, PhotoQuota, FamilyColoringPage, GooglePhotos, TrackerEntry, TrackerInput, TrackerKind, GeocodeResult, BookResult, BarcodeLookup, ReadingDay, LibraryBook, LibraryBookInput, ReadingData, ListItem, ListItemInput, ListItemPatch, ListItemStep, ListCatalog, Member, RememberedItem, RememberedItemInput, Note, NoteTarget, Providers, RemoteCalendar, Settings, Snapshot, SnapshotBirthday, Board, StickerPack, StickerPatch, StickerPlacement, Webhook, Reward, Redemption, PointAward, PointEntry, TempCheck, TempCheckInput, Journal, JournalEntry, Insights, InsightDay, InsightRange, Battery, Medication, MedicationInput, MedicationRefill, RefillCard, MedicationsDue, MedicationDose, MedicationHistory, DoseStatus, MedTime,
+  Photo, PhotoQuota, FamilyColoringPage, GooglePhotos, HomeAssistant, TrackerEntry, TrackerInput, TrackerKind, GeocodeResult, BookResult, BarcodeLookup, ReadingDay, LibraryBook, LibraryBookInput, ReadingData, ListItem, ListItemInput, ListItemPatch, ListItemStep, ListCatalog, Member, RememberedItem, RememberedItemInput, Note, NoteTarget, Providers, RemoteCalendar, Settings, Snapshot, SnapshotBirthday, Board, StickerPack, StickerPatch, StickerPlacement, Webhook, Reward, Redemption, PointAward, PointEntry, TempCheck, TempCheckInput, Journal, JournalEntry, Insights, InsightDay, InsightRange, Battery, Medication, MedicationInput, MedicationRefill, RefillCard, MedicationsDue, MedicationDose, MedicationHistory, DoseStatus, MedTime,
 } from './types.ts'
 import { eveningPending, FEELINGS, lastNightDate, TEMP_CHECK_OFF } from './tempCheck.ts'
 import { aisleOrderMap, compareItems } from './types.ts'
@@ -138,6 +138,7 @@ const settings: Settings = {
   aiHealthAccess: false,
   medications: true, // on in the demo, with samples for Leo and Sam
   medicationNamesOnWalls: false,
+  whereaboutsOnWalls: false,
   location: { name: 'Portland', lat: 45.5152, lon: -122.6784, countryCode: 'US' },
   temperatureUnit: 'fahrenheit',
   boardPresets: [],
@@ -251,6 +252,17 @@ const photos: Photo[] = [
   // Paint drawings saved to family photos, credited to the artist (mock-drawings.ts).
   ...DEMO_DRAWINGS.map(d => ({ id: d.id, caption: d.caption, mime: 'image/webp', width: 800, height: 600, bytes: 60_000, memberId: d.memberId, createdAt: new Date(Date.now() - d.daysAgo * 86_400_000).toISOString(), url: d.url, drawing: true })),
 ].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) // newest first, like the server
+// Home Assistant: connected, everyone linked. Alex is home, Sam at work (a shown place), Maya at the
+// park (not shown: Out) and Leo's phone is off (unknown: left off the card).
+const HA_PEOPLE = [
+  { id: 'person.alex', name: 'Alex', state: 'home' },
+  { id: 'person.sam', name: 'Sam', state: 'Work' },
+  { id: 'person.maya', name: 'Maya', state: 'Park' },
+  { id: 'person.leo', name: 'Leo', state: 'unknown' },
+]
+const HA_ZONES = [{ id: 'zone.park', name: 'Park' }, { id: 'zone.school', name: 'School' }, { id: 'zone.work', name: 'Work' }]
+const ha = { connected: true, url: 'http://homeassistant.local:8123', shown: ['zone.school', 'zone.work'], links: { m1: 'person.alex', m2: 'person.sam', m3: 'person.maya', m4: 'person.leo' } as Record<string, string> }
+const haStatus = (): HomeAssistant => ({ connected: ha.connected, ...(ha.connected ? { url: ha.url, via: ha.url === 'This Home Assistant' ? 'supervisor' as const : 'token' as const } : {}), problem: null, supervisor: false, privateUrls: true, shownPlaces: ha.connected ? ha.shown : [] })
 // Demo Google Photos: a pretend connection (nothing goes to Google) that steps through signing in
 // and picking albums on a timer, then shows Picsum pictures captioned as the demo.
 const DEMO_GOOGLE = [1018, 1036, 1044, 1050, 1069]
@@ -1414,6 +1426,30 @@ export const mock = {
     const s = scrapbook.find(x => x.id === id); if (!s) throw new Error('not found')
     Object.assign(s, body); bump(); return { ...s }
   },
+  // Home Assistant (HA_PEOPLE, HA_ZONES above): mirrors the server's mapping in routes/home-assistant.ts placeFor.
+  getWhereabouts: async () => ({ members: ha.connected ? Object.entries(ha.links).flatMap(([memberId, personId]) => {
+    const state = HA_PEOPLE.find(p => p.id === personId)?.state
+    const zone = HA_ZONES.find(z => z.name === state)
+    const place = state === 'home' ? { kind: 'home' as const } : !state || state === 'unknown' || state === 'unavailable' ? null : zone && ha.shown.includes(zone.id) ? { kind: 'place' as const, name: zone.name } : { kind: 'out' as const }
+    return place ? [{ memberId, place }] : []
+  }) : [] }),
+  getHomeAssistant: async () => haStatus(),
+  connectHomeAssistant: async (body: { url: string; token: string } | { supervisor: true }) => {
+    if ('url' in body && !/^https?:\/\//.test(body.url)) throw new Error('Enter the Home Assistant address, like http://homeassistant.local:8123')
+    ha.connected = true
+    ha.url = 'url' in body ? body.url.replace(/\/+$/, '') : 'This Home Assistant'
+    return haStatus()
+  },
+  disconnectHomeAssistant: async () => { Object.assign(ha, { connected: false, url: '', shown: [], links: {} }); return haStatus() },
+  getHaPeople: async () => HA_PEOPLE.map(p => ({ id: p.id, name: p.name, memberId: Object.entries(ha.links).find(([, id]) => id === p.id)?.[0] ?? null })),
+  getHaZones: async () => HA_ZONES.map(z => ({ ...z, shown: ha.shown.includes(z.id) })),
+  setShownPlaces: async (zones: string[]) => { ha.shown = zones; return haStatus() },
+  linkHaPerson: async (memberId: string, personId: string) => {
+    if (Object.entries(ha.links).some(([m, id]) => id === personId && m !== memberId)) throw new Error('That Home Assistant person is linked to someone else. Unlink them first.')
+    ha.links[memberId] = personId
+    return { memberId, personId }
+  },
+  unlinkHaPerson: async (memberId: string) => { delete ha.links[memberId]; return { ok: true } },
   getGooglePhotos: async () => googleStatus(),
   connectGooglePhotos: async () => { googleAt = Date.now(); return googleStatus() },
   disconnectGooglePhotos: async () => { googleAt = 0; return googleStatus() },

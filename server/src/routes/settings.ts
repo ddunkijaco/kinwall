@@ -93,6 +93,7 @@ export async function readSettings(db: KinwallDb) {
     // Medication reminders (routes/medications.ts): off until a parent turns it on, and part of the Health tracker.
     medications: map.get('medications') === 'true' && parseFeatures(map.get('features')).trackersHealth,
     medicationNamesOnWalls: map.get('medicationNamesOnWalls') === 'true', // shared screens say "Meds" until the family turns names on
+    whereaboutsOnWalls: map.get('whereaboutsOnWalls') === 'true', // routes/home-assistant.ts: shared screens show no whereabouts until the family turns them on
     newscastNotFeatured: parseIds(map.get('newscastNotFeatured')),
     newscastPostingPaused: parseIds(map.get('newscastPostingPaused')),
     googlePhotos: (map.get('googlePhotos:state') ?? 'off') as GooglePhotosState, // routes/google-photos.ts; left out of the export
@@ -276,6 +277,7 @@ settingsRoutes.openapi(
     const body = c.req.valid('json');
     if (body.aiHealthAccess !== undefined && (await isConnectedApp(c))) return c.json({ error: "Only a parent's own device can change what connected apps may see" }, 403);
     if ((body.medications !== undefined || body.medicationNamesOnWalls !== undefined) && (await isConnectedApp(c))) return c.json({ error: "Medication settings are changed from a parent's own device" }, 403);
+    if (body.whereaboutsOnWalls !== undefined && (await isConnectedApp(c))) return c.json({ error: "Showing where everyone is on wall screens is changed from a grown-up's own device" }, 403);
     // A saved scheme must be readable in both modes, the same bar as the app's editor.
     const failures = (body.customSchemes ?? []).flatMap(schemeContrastFailures);
     if (failures.length) return c.json({ error: `Not enough contrast. ${failures.join('. ')}.` }, 400);

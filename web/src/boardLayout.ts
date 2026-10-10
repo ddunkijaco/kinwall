@@ -5,12 +5,12 @@ import type { Features } from './types.ts'
 // or its own layout kept on the device. Pure, so web/test/boardLayout.test.ts covers it. The server
 // checks family presets against the same shape (server/src/schemas.ts BoardLayoutSchema).
 
-export const BOARD_CARDS = ['clock', 'today', 'meals', 'photo', 'coming', 'due', 'chores', 'tidbit', 'tidbit2', 'tidbit3', 'checklist'] as const
+export const BOARD_CARDS = ['clock', 'today', 'meals', 'photo', 'coming', 'due', 'chores', 'tidbit', 'tidbit2', 'tidbit3', 'checklist', 'whereabouts'] as const
 export type BoardCardId = typeof BOARD_CARDS[number]
 export const CARD_NAMES: Record<BoardCardId, string> = {
   clock: 'Clock & weather', today: 'Today', meals: 'Today’s meals', photo: 'Picture', coming: 'Coming up',
   due: 'Due soon', chores: 'Chores today', tidbit: 'Quote or fact', tidbit2: 'Quote or fact 2', tidbit3: 'Quote or fact 3',
-  checklist: 'Get stuff done',
+  checklist: 'Get stuff done', whereabouts: 'Where everyone is',
 }
 export const CARD_SIZES = ['s', 'm', 'l'] as const
 export type CardSize = typeof CARD_SIZES[number]

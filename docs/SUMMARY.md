@@ -28,6 +28,7 @@
 * [Insights](using/insights.md)
 * [Energy battery](using/battery.md)
 * [Medications](using/medications.md)
+* [Where everyone is](using/whereabouts.md)
 * [Lists](using/lists.md)
 * Nooks
   * [Meals](using/meals.md)

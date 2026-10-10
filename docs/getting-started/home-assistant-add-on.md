@@ -25,6 +25,7 @@ What this repository does for the add-on:
   * The optional direct port (8080) is plain http, so it has no passkeys unless you put an https proxy in front of it. If that proxy changes the `Host` header, set `public_url` to its address.
   * The Home Assistant phone app's built-in browser may not offer passkeys; open Home Assistant in Safari or Chrome to add one.
   * Some browsers, Safari especially, won't add a passkey inside Home Assistant's panel (an error like "Invalid 'sameOriginWithAncestors' value"). Settings → Access shows an **Open Kinwall in its own tab** link there; add the passkey from that tab and it works in the panel afterward. The setup wizard's passkey step has the same link and carries on in the new tab.
+* **Where everyone is**: in Settings → Family → Home Assistant, a grown-up can tap **Use this Home Assistant** to show [where everyone is](../using/whereabouts.md) from this Home Assistant, with no token to make. That needs the add-on to have Home Assistant API access (`homeassistant_api: true`); until it does, use **Connect Home Assistant** with a long-lived access token. Kinwall never connects on its own.
 * **Data** lives in the add-on's `/data`. It contains the SQLite database and `encryption.key`, so include it in your Home Assistant backups.
 * **Setup code**: find it under **Settings → Apps → Kinwall → Log** (**Settings → Add-ons** in older Home Assistant versions).
 

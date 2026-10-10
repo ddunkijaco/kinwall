@@ -20,6 +20,10 @@ Its options include **Points for chores created from Home Assistant** (default 5
 
 This page covers the Kinwall side, for when you wire things up yourself.
 
+## Where everyone is
+
+The other direction: Kinwall can read your Home Assistant people and show where everyone is (Home, a place you chose, or Out) on the Board and on profiles. Set it up in Settings → Family → Home Assistant. See [Where everyone is](../using/whereabouts.md).
+
 ## Running Kinwall inside Home Assistant
 
 See [Home Assistant add-on](../getting-started/home-assistant-add-on.md): ingress, the options that map to environment variables, and where data lives.
