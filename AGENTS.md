@@ -123,6 +123,16 @@ changes, `docs/self-hosting/` for config. New routes are documented by their zod
   notification text unless the family explicitly turns each one on.
 - Store only what the feature needs: no diagnoses or conditions unless a feature truly requires them.
 
+## Whereabouts
+
+- Kinwall shows only the name of a place a member is at (Home, a shown place, or Out), read live
+  from Home Assistant. It never fetches coordinates and never stores whereabouts: no history, no
+  "last seen", no cache beyond a minute in memory.
+- Whereabouts stay out of webhooks, MCP/AI connectors, snapshots, share links, push notification
+  text, the newscast and the export. Wall screens show them only when the family turns that on.
+- Places a grown-up hasn't chosen to show read as "Out". Never log Home Assistant responses, and
+  cover that with a test.
+
 ## Deploying
 
 `main` must stay green. The hosted service deploys from `kinwall-cloud`'s deploy workflow, which
