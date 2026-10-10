@@ -138,7 +138,7 @@ export default function SnapshotSheet({ member, onClose, toCheckIn }: { member: 
       {range === 'day' && <TakeNow memberId={member.id} className="meds-now-day" />}
       {/* Their battery: private, so only on their own device and parents' devices (never a shared wall). */}
       {range === 'day' && settings.features.checkIns && batteryOn(member.tempCheck) && (parentDevice || meMemberId === member.id) && <BatteryCard member={member} />}
-      {shown && (range === 'day' ? <DayView snap={shown} tz={tz} close={onClose} onToggle={toggleChore} books={settings.features.trackersReading ? books : []} /> : <WeekView snap={shown} tz={tz} close={onClose} />)}
+      {shown && (range === 'day' ? <DayView snap={shown} tz={tz} close={onClose} onToggle={toggleChore} books={settings.features.trackersReading ? books : []} pet={member.pet} /> : <WeekView snap={shown} tz={tz} close={onClose} />)}
       {/* Last night's check-in, still open after midnight: before this morning's questions. */}
       {shown?.range === 'day' && settings.features.checkIns && member.tempCheck?.on && (member.tempCheck.evening || member.tempCheck.battery) && <GoalFollowUp member={member} lastNight />}
       {shown?.range === 'day' && settings.features.checkIns && member.tempCheck?.on && <TempCheck member={member} />}
@@ -397,7 +397,7 @@ export function BirthdayRow({ b, you, close }: { b: SnapshotBirthday; you: strin
   return <li>{b.eventId ? <button className="snap-row" onClick={() => go(`#/calendar?event=${encodeURIComponent(b.eventId!)}&at=${b.date}`, close)}>{text}</button> : <div className="snap-row">{text}</div>}</li>
 }
 
-function DayView({ snap, tz, close, onToggle, books }: { snap: Snapshot; tz: string; close: () => void; onToggle: (c: SnapshotChore) => void; books: TrackerEntry<ReadingData>[] }) {
+function DayView({ snap, tz, close, onToggle, books, pet }: { snap: Snapshot; tz: string; close: () => void; onToggle: (c: SnapshotChore) => void; books: TrackerEntry<ReadingData>[]; pet?: boolean }) {
   const { features } = useApp().settings
   const [meal, setMeal] = useState<Meal | null>(null)
   const today = snap.from
@@ -420,7 +420,8 @@ function DayView({ snap, tz, close, onToggle, books }: { snap: Snapshot; tz: str
           ? <p className="snap-empty">Nothing on the calendar — enjoy it.</p>
           : <ul className="snap-list">{snap.events.map(e => <EventRow key={`${e.id}:${e.start}`} e={e} tz={tz} close={close} />)}</ul>}
       </Section>
-      {features.chores && <Section title={snap.chores.length ? `Chores · ${openChores ? `${openChores} left` : 'all done 🎉'}` : 'Chores'}>
+      {/* A pet never has chores: no empty Chores heading on their day. */}
+      {features.chores && !pet && <Section title={snap.chores.length ? `Chores · ${openChores ? `${openChores} left` : 'all done 🎉'}` : 'Chores'}>
         {snap.chores.length === 0
           ? <p className="snap-empty">No chores today.</p>
           : <ul className="snap-list">{snap.chores.map(c => <ChoreRow key={c.id} c={c} onToggle={onToggle} />)}</ul>}
