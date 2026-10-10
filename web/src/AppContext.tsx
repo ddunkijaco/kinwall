@@ -3,7 +3,8 @@ import type { Category, Member, Settings } from './types.ts'
 
 export interface AppCtx {
   settings: Settings
-  members: Member[]
+  members: Member[] // the family's people: everyone but pets (every picker, chores, points, rewards)
+  everyone: Member[] // people and pets, for the calendar, the header and Settings → Family
   categories: Category[]
   selectedMemberId: string | null
   setSelectedMemberId: (id: string | null) => void

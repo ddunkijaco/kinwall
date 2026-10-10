@@ -96,7 +96,8 @@ snapshotRoutes.openapi(
     const today = todayInTz(tz, now);
     const [membersRes, choresRes, itemsRes, stepsRes, categoriesRes, checkInRes] = await db.batch<unknown>([
       db.prepare('SELECT id, name, color, avatar, birthday FROM members ORDER BY sort, created_at'),
-      db.prepare('SELECT * FROM chores WHERE active = 1 AND (member_id = ? OR member_id IS NULL) ORDER BY sort, created_at').bind(memberId),
+      // A pet's day has no chores, not even the family's Anyone ones.
+      db.prepare('SELECT * FROM chores WHERE active = 1 AND (member_id = ? OR member_id IS NULL) AND NOT EXISTS (SELECT 1 FROM members WHERE id = ? AND pet = 1) ORDER BY sort, created_at').bind(memberId, memberId),
       db
         .prepare(
           `SELECT li.*, l.name AS list_name, l.emoji AS list_emoji FROM list_items li JOIN lists l ON l.id = li.list_id

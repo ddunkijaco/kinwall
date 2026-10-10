@@ -40,7 +40,7 @@ export function ColorClashNote({ members, canManage, onChanged, toast }: { membe
 
 /** In the member editor, under the swatches: the picked color looks like someone else's. */
 export function ColorClashHint({ color, memberId, onPick }: { color: string; memberId: string | null; onPick: (hex: string) => void }) {
-  const others = useApp().members.filter(m => m.id !== memberId)
+  const others = useApp().everyone.filter(m => m.id !== memberId) // pets' colors share the calendar
   const like = others.map(m => ({ m, v: alikeUnder(color, m.color) })).find(x => x.v)
   if (!like) return null
   const pick = suggestColor(others.map(m => m.color), MEMBER_PALETTE)

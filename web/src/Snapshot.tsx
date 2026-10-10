@@ -129,7 +129,7 @@ export default function SnapshotSheet({ member, onClose, toCheckIn }: { member: 
           <p className="snap-greeting">{shown?.greeting ?? ' '}</p>
           {hello && range === 'day' && <p className="snap-sub">☀️ Here's your day</p>}
         </div>
-        <a className="btn btn-secondary snap-profile" href={`#/profile/${member.id}`} onClick={onClose}>Profile</a>
+        {!member.pet && <a className="btn btn-secondary snap-profile" href={`#/profile/${member.id}`} onClick={onClose}>Profile</a>}
       </div>
       <Segmented label="Show" value={range} onChange={setRange} className="snap-range"
         options={[{ key: 'day', label: 'Day' }, { key: 'week', label: 'Week' }]} />
@@ -142,7 +142,7 @@ export default function SnapshotSheet({ member, onClose, toCheckIn }: { member: 
       {/* Last night's check-in, still open after midnight: before this morning's questions. */}
       {shown?.range === 'day' && settings.features.checkIns && member.tempCheck?.on && (member.tempCheck.evening || member.tempCheck.battery) && <GoalFollowUp member={member} lastNight />}
       {shown?.range === 'day' && settings.features.checkIns && member.tempCheck?.on && <TempCheck member={member} />}
-      {shown && <CheckIn snap={shown} onDone={() => setSnap(s => s && { ...s, checkedIn: true })} />}
+      {shown && !member.pet && <CheckIn snap={shown} onDone={() => setSnap(s => s && { ...s, checkedIn: true })} />}
       {shown?.range === 'day' && settings.features.checkIns && member.tempCheck?.on && (member.tempCheck.evening || member.tempCheck.battery) && <GoalFollowUp member={member} />}
       {!focusMemberId && (
         <div className="toggle-row snap-filter">

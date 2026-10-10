@@ -55,8 +55,8 @@ export async function createApiKey(
  * sign-in of the Kinwall app, any member (only a grown-up owner opens a journal: journalOwner). */
 export async function validOwner(db: KinwallDb, owner: string, scope: KeyScope | 'app' = 'display'): Promise<string | null> {
   if (owner === 'shared') return owner;
-  const m = await db.prepare('SELECT id, grown_up FROM members WHERE id = ?').bind(owner).first<{ id: string; grown_up: number }>();
-  if (!m) return null;
+  const m = await db.prepare('SELECT id, grown_up, pet FROM members WHERE id = ?').bind(owner).first<{ id: string; grown_up: number; pet: number }>();
+  if (!m || m.pet) return null; // a pet never has a device of their own
   return scope === 'app' || (scope === 'display') === !m.grown_up ? m.id : null;
 }
 
@@ -84,8 +84,9 @@ export async function deviceKindOwner(db: KinwallDb, scope: KeyScope, kind: Devi
   }
   const owner = ownerIn ?? 'shared';
   if (owner === 'shared') return kind ? { error: 'Pick whose device it is' } : { kind: admin ? null : 'wall', owner };
-  const m = await db.prepare('SELECT id, name, grown_up FROM members WHERE id = ?').bind(owner).first<{ id: string; name: string; grown_up: number }>();
+  const m = await db.prepare('SELECT id, name, grown_up, pet FROM members WHERE id = ?').bind(owner).first<{ id: string; name: string; grown_up: number; pet: number }>();
   if (!m) return { error: 'unknown family member' };
+  if (m.pet) return { error: `${m.name} is a pet, so the device can't be theirs.` };
   if (admin && !m.grown_up) return { error: 'A full-access device can only belong to a grown-up' };
   if (!admin && m.grown_up) return { error: GROWN_UP_PAIRING };
   const theirs: DeviceKind = m.grown_up ? 'grownup' : 'kid';

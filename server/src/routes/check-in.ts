@@ -47,7 +47,9 @@ checkInRoutes.openapi(
     if (!checkInPoints) return c.json({ error: 'Daily check-ins are turned off' }, 400);
     const blocked = await ownerBlock(c, id);
     if (blocked) return c.json({ error: blocked }, 403);
-    if (!(await db.prepare('SELECT 1 FROM members WHERE id = ?').bind(id).first())) return c.json({ error: 'member not found' }, 404);
+    const who = await db.prepare('SELECT name, pet FROM members WHERE id = ?').bind(id).first<{ name: string; pet: number }>();
+    if (!who) return c.json({ error: 'member not found' }, 404);
+    if (who.pet) return c.json({ error: `${who.name} is a pet, so ${who.name} doesn't check in.` }, 400);
 
     const date = todayInTz(settings.timezone ?? hostTimezone());
     const at = new Date().toISOString();

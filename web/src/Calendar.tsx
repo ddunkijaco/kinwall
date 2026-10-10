@@ -95,7 +95,8 @@ function useSwipe(onLeft: () => void, onRight: () => void) {
 
 export default function CalendarView() {
   const dialog = useDialog()
-  const { settings, members, categories, selectedMemberId, focusMemberId, focusShowsShared, focusLocked, meMemberId, parentDevice, toast, reloadCore, refreshTick } = useApp()
+  // everyone: pets are on the calendar too (their events, color and the event sheet's chips).
+  const { settings, everyone: members, members: people, categories, selectedMemberId, focusMemberId, focusShowsShared, focusLocked, meMemberId, parentDevice, toast, reloadCore, refreshTick } = useApp()
   const device = useDeviceAppearance()
   const isPhone = useIsPhone()
   // Where the Board puts one or two count tiles as chips (boardFit.ts tileChips); a phone's toolbar has no room.
@@ -133,8 +134,8 @@ export default function CalendarView() {
   const kidDevice = focusLocked && !!meMemberId
   // Temp check: the goal of the one person this calendar is about (pinned, filtered, or their own device).
   const goalMember = focusMemberId ?? selectedMemberId ?? meMemberId
-  const goalText = settings.features.checkIns ? calendarGoal(members, goalMember) : null
-  const goalLine = goalText ? { name: members.find(m => m.id === goalMember)?.name ?? '', goal: goalText } : null
+  const goalText = settings.features.checkIns ? calendarGoal(people, goalMember) : null
+  const goalLine = goalText ? { name: people.find(m => m.id === goalMember)?.name ?? '', goal: goalText } : null
   const editableCalendars = calendars.filter(c => c.writable && c.enabled && c.canEditEvents !== false)
   const offerNewLocal = !kidDevice && !calendars.some(c => c.kind === 'local' && c.writable)
   const canAdd = editableCalendars.length > 0 || offerNewLocal
@@ -241,7 +242,7 @@ export default function CalendarView() {
     window.addEventListener('hashchange', read)
     return () => window.removeEventListener('hashchange', read)
   }, [])
-  const checkInMember = checkIn && (!focusMemberId || checkIn === focusMemberId) ? members.find(m => m.id === checkIn) : undefined
+  const checkInMember = checkIn && (!focusMemberId || checkIn === focusMemberId) ? people.find(m => m.id === checkIn) : undefined
   // Kept until the event shows up in a load (the jump above triggers a new fetch); give up after 10s.
   useEffect(() => {
     if (!pendingEventId) return

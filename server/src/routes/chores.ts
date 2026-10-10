@@ -4,7 +4,7 @@ import { createRouter } from '../router.ts';
 import type { Env } from '../env.ts';
 import { hostTimezone } from '../env.ts';
 import type { KinwallDb } from '../db.ts';
-import { todayInTz } from './members.ts';
+import { isPet, PET_NO_CHORES, todayInTz } from './members.ts';
 import { emit } from '../bus.ts';
 import { expand, isValidRrule, rruleOccurs } from '../recurrence.ts';
 import { ChoreDaySchema, ChoreInputSchema, ChoreSchema, ErrorSchema } from '../schemas.ts';
@@ -126,6 +126,8 @@ choresRoutes.openapi(
     if (neverError) return c.json({ error: neverError }, 400);
     const listError = (await checkList(c, body.listId)) ?? (await checkPlugin(c, body.pluginId)) ?? (await checkLibrary(c, body.libraryId));
     if (listError) return c.json({ error: listError }, 400);
+    const pet = await isPet(c.env.DB, body.memberId);
+    if (pet) return c.json(PET_NO_CHORES(pet.name), 400);
     const row: ChoreRow = {
       id: crypto.randomUUID(),
       title: body.title,
@@ -172,6 +174,8 @@ choresRoutes.openapi(
     if (body.rrule && !isValidRrule(body.rrule)) return c.json({ error: 'invalid rrule' }, 400);
     const listError = (await checkList(c, body.listId)) ?? (await checkPlugin(c, body.pluginId));
     if (listError) return c.json({ error: listError }, 400);
+    const pet = await isPet(c.env.DB, body.memberId);
+    if (pet) return c.json(PET_NO_CHORES(pet.name), 400);
     const existing = await c.env.DB.prepare('SELECT * FROM chores WHERE id = ? AND archived = 0').bind(id).first<ChoreRow>();
     if (!existing) return c.json({ error: 'not found' }, 404);
     // A new start day can turn a repeat that happened into one that never does.
@@ -379,6 +383,8 @@ export async function completeChore(c: Context<{ Bindings: Env }>, id: string, d
   if (!chore) return 'not found';
   const blocked = await ownerBlock(c, memberId, chore.member_id, chore.done_by);
   if (blocked) return { blocked };
+  const pet = await isPet(c.env.DB, memberId);
+  if (pet) return { blocked: PET_NO_CHORES(pet.name).error };
   const settings = new Map((settingsRes.results as { key: string; value: string }[]).map((r) => [r.key, r.value]));
   const tz = settings.get('timezone') ?? hostTimezone();
   const today = todayInTz(tz);

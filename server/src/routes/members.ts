@@ -17,7 +17,7 @@ import { pictureUrl } from './photos.ts';
 
 export const membersRoutes = createRouter();
 
-type MemberRow = { id: string; name: string; color: string; avatar: string | null; birthday: string | null; sort: number; created_at: string; needs_approval?: number; grown_up?: number; transitions: string | null; reward_goal?: string | null; temp_check?: string | null; journal_private?: number | null; journal_private_allowed?: number | null; picture_id?: string | null };
+type MemberRow = { id: string; name: string; color: string; avatar: string | null; birthday: string | null; sort: number; created_at: string; needs_approval?: number; grown_up?: number; transitions: string | null; reward_goal?: string | null; temp_check?: string | null; journal_private?: number | null; journal_private_allowed?: number | null; picture_id?: string | null; pet?: number };
 
 // The stored JSON, or off. Shared with notify.ts (which only acts on `on`).
 export function parseTransitions(raw: string | null): typeof TRANSITIONS_OFF {
@@ -140,7 +140,7 @@ const toGoals = (rows: { id: string; title: string; emoji: string | null; cost: 
 const goalRewards = async (db: KinwallDb) => toGoals((await db.prepare(GOALS_SQL).all<{ id: string; title: string; emoji: string | null; cost: number }>()).results);
 
 function toApi(row: MemberRow, points: Points, goals: Map<string, Goal> = new Map(), todays: Map<string, string> = new Map()) {
-  return { id: row.id, name: row.name, color: row.color, avatar: row.avatar, picture: row.picture_id ? pictureUrl(row.picture_id) : null, birthday: row.birthday ?? null, sort: row.sort, grownUp: !!row.grown_up, needsApproval: !!row.needs_approval, ...points, transitionReminders: parseTransitions(row.transitions), rewardGoal: (row.reward_goal && goals.get(row.reward_goal)) || null, tempCheck: parseTempCheck(row.temp_check), todayGoal: todays.get(row.id) ?? null, privateJournal: privacyOf({ grown_up: row.grown_up ?? 0, journal_private: row.journal_private ?? null, journal_private_allowed: row.journal_private_allowed ?? 0 }) };
+  return { id: row.id, name: row.name, color: row.color, avatar: row.avatar, picture: row.picture_id ? pictureUrl(row.picture_id) : null, birthday: row.birthday ?? null, sort: row.sort, grownUp: !!row.grown_up, needsApproval: !!row.needs_approval, pet: !!row.pet, ...points, transitionReminders: parseTransitions(row.transitions), rewardGoal: (row.reward_goal && goals.get(row.reward_goal)) || null, tempCheck: parseTempCheck(row.temp_check), todayGoal: todays.get(row.id) ?? null, privateJournal: privacyOf({ grown_up: row.grown_up ?? 0, journal_private: row.journal_private ?? null, journal_private_allowed: row.journal_private_allowed ?? 0 }) };
 }
 
 membersRoutes.openapi(
@@ -180,10 +180,14 @@ membersRoutes.openapi(
     summary: 'Create a family member',
     security: [{ Bearer: [] }],
     request: { body: { content: { 'application/json': { schema: MemberInputSchema } } } },
-    responses: { 201: { description: 'created', content: { 'application/json': { schema: MemberSchema } } } },
+    responses: {
+      201: { description: 'created', content: { 'application/json': { schema: MemberSchema } } },
+      400: { description: 'a pet marked as a grown-up', content: { 'application/json': { schema: ErrorSchema } } },
+    },
   }),
   async (c) => {
     const body = c.req.valid('json');
+    if (body.pet && body.grownUp) return c.json(PET_GROWN_UP, 400);
     const row: MemberRow = {
       id: crypto.randomUUID(),
       name: body.name,
@@ -195,12 +199,13 @@ membersRoutes.openapi(
       created_at: new Date().toISOString(),
       // A grown-up's chores never wait for an OK: needsApproval is ignored for them.
       grown_up: body.grownUp ? 1 : 0,
-      needs_approval: body.needsApproval && !body.grownUp ? 1 : 0,
-      transitions: body.transitionReminders ? JSON.stringify(body.transitionReminders) : null,
-      temp_check: body.tempCheck ? JSON.stringify(body.tempCheck) : null,
+      needs_approval: body.needsApproval && !body.grownUp && !body.pet ? 1 : 0,
+      pet: body.pet ? 1 : 0,
+      transitions: body.transitionReminders && !body.pet ? JSON.stringify(body.transitionReminders) : null,
+      temp_check: body.tempCheck && !body.pet ? JSON.stringify(body.tempCheck) : null,
     };
-    await c.env.DB.prepare('INSERT INTO members (id, name, color, avatar, birthday, sort, created_at, grown_up, needs_approval, transitions, temp_check) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
-      .bind(row.id, row.name, row.color, row.avatar, row.birthday, row.sort, row.created_at, row.grown_up, row.needs_approval, row.transitions, row.temp_check)
+    await c.env.DB.prepare('INSERT INTO members (id, name, color, avatar, birthday, sort, created_at, grown_up, needs_approval, transitions, temp_check, pet) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
+      .bind(row.id, row.name, row.color, row.avatar, row.birthday, row.sort, row.created_at, row.grown_up, row.needs_approval, row.transitions, row.temp_check, row.pet)
       .run();
     emit(c, 'member.changed', { id: row.id });
     return c.json(toApi(row, NO_POINTS), 201);
@@ -230,6 +235,28 @@ export async function kidRefusal(c: Context<{ Bindings: Env }>, m: { id: string;
   const only = `so only ${m.name} can change this, from their own phone or computer.`;
   return has?.journal ? `${m.name} has a private journal, ${only}` : has?.signin ? `${m.name} signs in with full access, ${only}` : null;
 }
+// Pets (migration 0111): on the calendar with a color and a birthday, and nothing else. A pet is
+// never a grown-up, never given chores, points or rewards, and never owns a device (auth.ts
+// validOwner), so marking someone a pet is refused while any of that is theirs: nothing is dropped
+// behind a parent's back. Unmarking a pet just makes them a kid again.
+export const PET_GROWN_UP = { error: "A pet can't be a grown-up." };
+export const PET_THINGS = (name: string, what: string) => ({ error: `${name} has ${what}. Move or remove them first, then mark ${name} as a pet.` });
+/** What's still theirs that a pet can't have, in plain words, or null. */
+export async function petBlockers(db: KinwallDb, id: string): Promise<string | null> {
+  const r = await db.prepare(`SELECT
+      (SELECT COUNT(*) FROM chores WHERE member_id = ? AND archived = 0) AS chores,
+      (SELECT COUNT(*) FROM api_keys WHERE owner = ?) + (SELECT COUNT(*) FROM oauth_grants WHERE owner = ?) + (SELECT COUNT(*) FROM passkeys WHERE owner = ?) AS devices`)
+    .bind(id, id, id, id).first<{ chores: number; devices: number }>();
+  const parts = [r?.chores ? (r.chores === 1 ? 'a chore' : `${r.chores} chores`) : null, r?.devices ? (r.devices === 1 ? 'a device of their own' : `${r.devices} devices of their own`) : null].filter(Boolean);
+  return parts.length ? parts.join(' and ') : null;
+}
+/** A pet, or null: for routes that give a member chores, points or rewards. */
+export async function isPet(db: KinwallDb, id: string | null | undefined): Promise<{ name: string } | null> {
+  if (!id) return null;
+  return (await db.prepare('SELECT name FROM members WHERE id = ? AND pet = 1').bind(id).first<{ name: string }>()) ?? null;
+}
+export const PET_NO_CHORES = (name: string) => ({ error: `${name} is a pet, so ${name} can't have chores or points.` });
+
 const grownUpTitle = (name: string, grownUp: boolean) => (grownUp ? `${name} is now marked as a grown-up` : `${name} is no longer marked as a grown-up`);
 /** For the batch that changes member `id` to `grownUp`. A kid's journal starts at a kid's defaults. */
 export async function grownUpChangeStmts(c: Context<{ Bindings: Env }>, id: string, grownUp: boolean, name: string): Promise<KinwallStatement[]> {
@@ -264,6 +291,8 @@ membersRoutes.openapi(
     },
     responses: {
       200: { description: 'ok', content: { 'application/json': { schema: MemberSchema } } },
+      400: { description: 'a pet marked as a grown-up', content: { 'application/json': { schema: ErrorSchema } } },
+      409: { description: 'marking someone a pet while chores or a device of their own are still theirs', content: { 'application/json': { schema: ErrorSchema } } },
       403: { description: "a connected app changing grownUp, or marking a grown-up as a kid from a device that isn't theirs once they have a private journal or a full-access sign-in", content: { 'application/json': { schema: ErrorSchema } } },
       404: { description: 'not found', content: { 'application/json': { schema: ErrorSchema } } },
     },
@@ -277,6 +306,12 @@ membersRoutes.openapi(
     if (flipped && (await isConnectedApp(c))) return c.json(APP_GROWN_UP, 403);
     const refused = flipped && !body.grownUp && (await kidRefusal(c, existing));
     if (refused) return c.json({ error: refused }, 403);
+    const pet = body.pet !== undefined ? body.pet : !!existing.pet;
+    if (pet && (body.grownUp ?? !!existing.grown_up)) return c.json(PET_GROWN_UP, 400);
+    if (pet && !existing.pet) {
+      const blockers = await petBlockers(c.env.DB, id);
+      if (blockers) return c.json(PET_THINGS(existing.name, blockers), 409);
+    }
     const updated: MemberRow = {
       ...existing,
       name: body.name ?? existing.name,
@@ -288,12 +323,15 @@ membersRoutes.openapi(
       needs_approval: body.needsApproval !== undefined ? (body.needsApproval ? 1 : 0) : existing.needs_approval,
       transitions: body.transitionReminders ? JSON.stringify(body.transitionReminders) : existing.transitions,
       temp_check: body.tempCheck ? JSON.stringify(body.tempCheck) : existing.temp_check,
+      pet: pet ? 1 : 0,
     };
     if (updated.grown_up) updated.needs_approval = 0; // a grown-up's chores never wait for an OK
+    // A pet keeps no kid settings: no reward goal, nothing pushed to devices, no daily questions.
+    if (updated.pet) Object.assign(updated, { needs_approval: 0, reward_goal: null, transitions: null, temp_check: null });
     const trail = flipped ? await grownUpChangeStmts(c, id, !!updated.grown_up, updated.name) : [];
     await c.env.DB.batch([
-      c.env.DB.prepare('UPDATE members SET name = ?, color = ?, avatar = ?, birthday = ?, sort = ?, grown_up = ?, needs_approval = ?, transitions = ?, temp_check = ? WHERE id = ?')
-        .bind(updated.name, updated.color, updated.avatar, updated.birthday, updated.sort, updated.grown_up ?? 0, updated.needs_approval ?? 0, updated.transitions, updated.temp_check ?? null, id),
+      c.env.DB.prepare('UPDATE members SET name = ?, color = ?, avatar = ?, birthday = ?, sort = ?, grown_up = ?, needs_approval = ?, transitions = ?, temp_check = ?, pet = ?, reward_goal = ? WHERE id = ?')
+        .bind(updated.name, updated.color, updated.avatar, updated.birthday, updated.sort, updated.grown_up ?? 0, updated.needs_approval ?? 0, updated.transitions, updated.temp_check ?? null, updated.pet ?? 0, updated.reward_goal ?? null, id),
       ...trail,
     ]);
     if (flipped) {

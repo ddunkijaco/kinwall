@@ -1290,6 +1290,7 @@ function registerTools(server: McpServer, app: App, env: Env, auth: string) {
         avatar: z.string().optional().describe('Emoji or initial.'),
         birthday: z.string().optional().describe(BIRTHDAY_DOC),
         grownUp: z.boolean().optional().describe("A parent or other adult: their chores never wait for a parent's OK. Default false."),
+        pet: z.boolean().optional().describe('A family pet: on the calendar with a color and birthday, but no chores, points, rewards, check-ins or devices. Never a grown-up. Default false.'),
       },
     },
     async (input) => {
@@ -1304,7 +1305,7 @@ function registerTools(server: McpServer, app: App, env: Env, auth: string) {
     'update_member',
     {
       title: 'Update family member',
-      description: "Change a family member's name, color, avatar, birthday, whether their chores need a parent's OK, or transition reminders (admin). Only provided fields change. Who is a grown-up can't be changed here: a parent does that on their own device.",
+      description: "Change a family member's name, color, avatar, birthday, whether they're a pet, whether their chores need a parent's OK, or transition reminders (admin). Only provided fields change. Who is a grown-up can't be changed here: a parent does that on their own device.",
       inputSchema: {
         member: z.string().describe('Member name or id.'),
         name: z.string().optional(),
@@ -1312,7 +1313,8 @@ function registerTools(server: McpServer, app: App, env: Env, auth: string) {
         avatar: z.string().nullable().optional().describe('Emoji or initial.'),
         birthday: z.string().nullable().optional().describe(`${BIRTHDAY_DOC} null clears it.`),
         grownUp: z.boolean().optional().describe("Refused when it would change: who is a grown-up decides who reads their private journal, so a parent sets it on their own device (Settings → Family)."),
-        needsApproval: z.boolean().optional().describe("Their chores need a parent's OK by default (a chore's own setting wins). Ignored for a grown-up."),
+        needsApproval: z.boolean().optional().describe("Their chores need a parent's OK by default (a chore's own setting wins). Ignored for a grown-up or a pet."),
+        pet: z.boolean().optional().describe("A family pet: calendar and birthday only. Refused while they have chores or a device of their own; false makes them a kid again."),
         transitionReminders: TransitionRemindersSchema.optional().describe(
           'Admin: pushes to this person\'s own devices before their events. { on, minutes: [10, 5] (1-120, up to 8), repeat: { every: 5, within: 30 } or null, leaveBy: true (count to the leave-by time when there is travel time) }. Replaces the whole setting.',
         ),

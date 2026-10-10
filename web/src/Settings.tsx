@@ -68,7 +68,7 @@ const SETTINGS_TABS: { key: SettingsTab; label: string; admin?: boolean }[] = [
 ]
 
 export default function SettingsView() {
-  const { settings, members, categories, toast, reloadCore } = useApp()
+  const { settings, everyone, categories, toast, reloadCore } = useApp()
   const [openAccountId, setOpenAccountId] = useState<string | null>(null)
   // The tab rides in the hash query (#/settings?tab=family) so reloads and links keep it; an OAuth
   // return (?account=...) lands on Calendars, where the new account's calendar picker opens.
@@ -197,7 +197,7 @@ export default function SettingsView() {
           </SettingsGroup>
         </AccordionCtx.Provider>}
         {current === 'family' && <>
-          <MembersSection members={members} onChanged={reloadCore} toast={toast} canManage={!isDisplay} />
+          <MembersSection members={everyone} onChanged={reloadCore} toast={toast} canManage={!isDisplay} />
           <CategoriesSection categories={categories} onChanged={reloadCore} toast={toast} canManage={!isDisplay} />
           {/* Chore rules are family settings a display key can't save (auth.ts), like General's family group. */}
           {!isDisplay && settings.features.chores && <ChoreSettingsSection settings={settings} onSaved={reloadCore} toast={toast} />}
@@ -1954,7 +1954,7 @@ function MembersSection({ members, onChanged, toast, canManage = true }: { membe
         {members.map(m => (
           <div key={m.id} className="member-list-item" {...pressable(() => setEdit(m))} aria-label={`Edit ${m.name}`}>
             <Face m={m} aria-hidden="true" />
-            <div className="name">{m.name}</div>
+            <div className="name">{m.name}{m.pet && <span className="settings-row-sub"> · Pet</span>}</div>
           </div>
         ))}
         {canManage && <button className="add-row-btn" onClick={() => setEdit('new')}><PlusIcon width={20} height={20} />Add member</button>}
@@ -1970,7 +1970,7 @@ function MembersSection({ members, onChanged, toast, canManage = true }: { membe
 
 function MemberEditSheet({ member, canDelete, onClose, onSaved, toast }: { member: Member | null; canDelete: boolean; onClose: () => void; onSaved: () => void; toast: (m: string, persist?: boolean) => void }) {
   const dialog = useDialog()
-  const { settings: { features: { checkIns } }, members } = useApp() // checkIns off: Temp check and the journal are hidden (their settings are kept)
+  const { settings: { features: { checkIns } }, everyone: members } = useApp() // checkIns off: Temp check and the journal are hidden (their settings are kept)
   const live = member && (members.find(m => m.id === member.id) ?? member) // its picture changes on its own sheet, saved at once
   const [picking, setPicking] = useState(false)
   const [transitions, setTransitions] = useState<TransitionReminders>(member?.transitionReminders ?? { on: false, minutes: [], repeat: null, leaveBy: true })
@@ -1983,19 +1983,22 @@ function MemberEditSheet({ member, canDelete, onClose, onSaved, toast }: { membe
   const [noYear, setNoYear] = useState(!!member?.birthday?.startsWith('--'))
   const birthday = !bday ? null : noYear ? `--${bday.slice(5)}` : bday
   const [grownUp, setGrownUp] = useState(!!member?.grownUp)
+  const [pet, setPet] = useState(!!member?.pet)
   const [needsApproval, setNeedsApproval] = useState(!!member?.needsApproval)
   const [tempCheck, setTempCheck] = useState<TempCheckSettings>({ ...TEMP_CHECK_OFF, ...member?.tempCheck })
   const save = async () => {
     if (!name.trim() || !isValidAvatar(avatar)) return
     try {
       // Transition reminders are a parent's setting: only sent from a device that may manage members.
-      const extra = canDelete ? { transitionReminders: transitions, grownUp, needsApproval: needsApproval && !grownUp, tempCheck } : {}
+      // A pet: calendar and birthday only, so none of a kid's settings go along.
+      const extra = !canDelete ? {} : pet ? { pet, grownUp: false } : { pet, transitionReminders: transitions, grownUp, needsApproval: needsApproval && !grownUp, tempCheck }
       if (member) await api.updateMember(member.id, { name: name.trim(), color, avatar, birthday, ...extra })
       else await api.createMember({ name: name.trim(), color, avatar, birthday, ...extra })
       onSaved()
     } catch (e) {
       // Refused (e.g. only Alex can mark Alex as a kid): nothing was saved, so the switch shows what's true again.
       if (member && e instanceof ApiError && e.status === 403) setGrownUp(!!member.grownUp)
+      if (member && e instanceof ApiError && e.status === 409) setPet(!!member.pet)
       toast(e instanceof ApiError ? e.message : 'Could not save member', true)
     }
   }
@@ -2028,7 +2031,16 @@ function MemberEditSheet({ member, canDelete, onClose, onSaved, toast }: { membe
           {picking && <PictureSheet member={live} onClose={() => setPicking(false)} />}
         </div>
       )}
-      {canDelete && (
+      {canDelete && !grownUp && (
+        <div className="field">
+          <div className="toggle-row">
+            <label id="member-pet">Pet</label>
+            <button className={`switch ${pet ? 'on' : ''}`} role="switch" aria-checked={pet} aria-labelledby="member-pet" onClick={() => setPet(v => !v)}><span className="knob" /></button>
+          </div>
+          <p className="field-hint">On the calendar with their own color, and their birthday on the Board. No chores, points or rewards.</p>
+        </div>
+      )}
+      {canDelete && !pet && (
         <div className="field">
           <div className="toggle-row">
             <label id="member-grown-up">Grown-up</label>
@@ -2047,17 +2059,17 @@ function MemberEditSheet({ member, canDelete, onClose, onSaved, toast }: { membe
           <button className={`switch ${noYear ? 'on' : ''}`} role="switch" aria-checked={noYear} aria-labelledby="member-birthday-noyear" onClick={() => setNoYear(v => !v)}><span className="knob" /></button>
         </div>
       )}
-      {canDelete && !grownUp && <>
+      {canDelete && !grownUp && !pet && <>
       <div className="toggle-row">
         <label id="member-needs-approval">Their chores need a parent's OK</label>
         <button className={`switch ${needsApproval ? 'on' : ''}`} role="switch" aria-checked={needsApproval} aria-labelledby="member-needs-approval" onClick={() => setNeedsApproval(v => !v)}><span className="knob" /></button>
       </div>
       <p className="field-hint">Chores they tick on a wall screen or their own device wait for a parent to approve before the points count. A chore's own setting wins.</p>
       </>}
-      {canDelete && <TransitionRemindersField name={name.trim() || 'this person'} value={transitions} onChange={setTransitions} />}
-      {canDelete && checkIns && <TempCheckField member={member} name={name.trim() || 'this person'} value={tempCheck} onChange={setTempCheck} toast={toast} />}
-      {canDelete && checkIns && member && !member.grownUp && <PrivateJournalField member={member} toast={toast} />}
-      {canDelete && member && <NewscastMemberField member={member} toast={toast} />}
+      {canDelete && !pet && <TransitionRemindersField name={name.trim() || 'this person'} value={transitions} onChange={setTransitions} />}
+      {canDelete && !pet && checkIns && <TempCheckField member={member} name={name.trim() || 'this person'} value={tempCheck} onChange={setTempCheck} toast={toast} />}
+      {canDelete && !pet && checkIns && member && !member.grownUp && <PrivateJournalField member={member} toast={toast} />}
+      {canDelete && !pet && member && <NewscastMemberField member={member} toast={toast} />}
     </Sheet>
   )
 }

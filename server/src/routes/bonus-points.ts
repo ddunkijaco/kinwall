@@ -10,7 +10,7 @@ import type { Env } from '../env.ts';
 import { emit } from '../bus.ts';
 import { notifyChoreApproval } from '../notify.ts';
 import { balanceOf } from '../stickers.ts';
-import { household, todayInTz } from './members.ts';
+import { household, isPet, PET_NO_CHORES, todayInTz } from './members.ts';
 import { readSettings } from './settings.ts';
 import { ErrorSchema, PointAwardInputSchema, PointAwardSchema } from '../schemas.ts';
 
@@ -55,6 +55,7 @@ bonusPointsRoutes.openapi(
     if (!(await readSettings(db)).features.chores) return c.json({ error: OFF }, 403);
     const member = await db.prepare('SELECT name FROM members WHERE id = ?').bind(body.memberId).first<{ name: string }>();
     if (!member) return c.json({ error: 'member not found' }, 404);
+    if (await isPet(db, body.memberId)) return c.json(PET_NO_CHORES(member.name), 400);
     const today = todayInTz((await household(db)).tz);
     const date = body.date ?? today;
     if (!isDay(date) || date > today) return c.json({ error: 'Pick today or an earlier day' }, 400);

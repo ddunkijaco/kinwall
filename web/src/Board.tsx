@@ -217,7 +217,7 @@ function ToolbarChips({ host, tiles }: { host: HTMLElement | null | undefined; t
 /** `show`: the calendar's member/category filter, so a focused display's board matches its calendar.
  *  `chipHost`: a spot on the toolbar for one or two count tiles as chips (boardFit.ts tileChips). */
 export default function Board({ show, onTap, chipHost }: { show: (e: EventInstance) => boolean; onTap: (e: EventInstance) => void; chipHost?: HTMLElement | null }) {
-  const { settings, members, refreshTick, selectedMemberId, focusMemberId, focusShowsShared, parentDevice, meMemberId } = useApp()
+  const { settings, members, everyone, refreshTick, selectedMemberId, focusMemberId, focusShowsShared, parentDevice, meMemberId } = useApp()
   const kidDevice = !parentDevice && !!meMemberId && members.find(m => m.id === meMemberId)?.grownUp === false
   const device = useDeviceAppearance()
   const tz = settings.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -325,7 +325,7 @@ export default function Board({ show, onTap, chipHost }: { show: (e: EventInstan
   const tidbitAreas = ['tidbit', 'tidbit2', 'tidbit3']
 
   if (!data) return error ? <div className="state-card" role="alert">Couldn't load the board. Check your connection. <button className="btn btn-secondary" onClick={() => setTick(t => t + 1)}>Try again</button></div> : null
-  const byId = new Map(members.map(m => [m.id, m]))
+  const byId = new Map(everyone.map(m => [m.id, m])) // pets' events show their color too
   const today = data.today
   const events = data.events.filter(show)
   const w = data.weather

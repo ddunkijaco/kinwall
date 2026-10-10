@@ -175,6 +175,7 @@ export const MemberSchema = z
     balance: z.number(), // points left to spend: everything earned from chores, minus sticker purchases (+/- other ledger entries)
     grownUp: z.boolean().openapi({ description: "A parent or other adult. Their chores never wait for a parent's OK (needsApproval is always false)." }),
     needsApproval: z.boolean().openapi({ description: "Their chores need a parent's OK by default (a chore's own setting wins). Always false for a grown-up." }),
+    pet: z.boolean().openapi({ description: 'A family pet: on the calendar (events, color, birthday) but never given chores, points, rewards, check-ins, a journal or a device of their own. Never a grown-up.' }),
     transitionReminders: TransitionRemindersSchema,
     rewardGoal: z
       .object({ rewardId: z.string(), title: z.string(), emoji: z.string().nullable(), cost: z.number() })
@@ -196,7 +197,8 @@ export const MemberInputSchema = z
     birthday: BirthdaySchema.nullable().optional(),
     sort: z.number().optional(),
     grownUp: z.boolean().optional().openapi({ description: 'Default false. true also turns needsApproval off.' }),
-    needsApproval: z.boolean().optional().openapi({ description: 'Ignored for a grown-up (stays false).' }),
+    needsApproval: z.boolean().optional().openapi({ description: 'Ignored for a grown-up or a pet (stays false).' }),
+    pet: z.boolean().optional().openapi({ description: "Default false. A pet can't be a grown-up, and can't be marked a pet while chores are assigned to them." }),
     transitionReminders: TransitionRemindersSchema.optional(),
     tempCheck: TempCheckSettingsSchema.optional(),
   })

@@ -890,7 +890,7 @@ function FamilySheet({ name, members, selectedMemberId, onClose, onFilter, onSna
             <button className={`family-row ${m.id === selectedMemberId ? 'on' : ''}`} aria-haspopup="dialog" onClick={() => onSnapshot(m)}>
               <Face m={m} className={`member-avatar-sm ${m.id === selectedMemberId ? 'selected' : ''}`} aria-hidden="true" />
               <span className="family-row-name">{m.name}</span>
-              {(m.id === selectedMemberId || settings.features.chores) && <span className="family-row-sub">{m.id === selectedMemberId ? 'Calendar shows only them' : `${m.pointsToday} pts today`}</span>}
+              {(m.id === selectedMemberId || (settings.features.chores && !m.pet)) && <span className="family-row-sub">{m.id === selectedMemberId ? 'Calendar shows only them' : `${m.pointsToday} pts today`}</span>}
             </button>
             <button className={`family-pick ${m.id === selectedMemberId ? 'on' : ''}`} aria-pressed={m.id === selectedMemberId}
               aria-label={`Show only ${m.name} on the calendar`} onClick={() => onFilter(m.id === selectedMemberId ? null : m.id)}><span aria-hidden="true" /></button>
@@ -1179,8 +1179,9 @@ function AppRoutes({ urlKey }: { urlKey: string | null }) {
   // personal defaults (meMemberId), and the family filter works as on any unowned device. A member
   // deleted since falls back to everyone.
   setHour12(resolveHour12(settings?.timeFormat, device.timeFormat)) // before anything below formats a time
+  const people = members.filter(m => !m.pet) // pets are on the calendar only (AppCtx.everyone)
   const focusMember = members.find(m => m.id === (ownerLocks ? owner : device.focusMemberId))
-  const meMemberId = members.some(m => m.id === owner) ? owner : null
+  const meMemberId = people.some(m => m.id === owner) ? owner : null
   const effectiveMemberId = focusMember?.id ?? selectedMemberId
   const setMemberId = focusMember ? () => {} : setSelectedMemberId
 
@@ -1308,7 +1309,7 @@ function AppRoutes({ urlKey }: { urlKey: string | null }) {
   const navTab = (section === 'profile' || section === 'journal') && sub !== meMemberId ? '' : section === 'medications' || section === 'insights' ? '' : section
   return (
     <AppContext.Provider value={{
-      settings, members, categories, selectedMemberId: effectiveMemberId, setSelectedMemberId: setMemberId,
+      settings, members: people, everyone: members, categories, selectedMemberId: effectiveMemberId, setSelectedMemberId: setMemberId,
       focusMemberId: focusMember?.id ?? null, focusShowsShared: !device.focusHideShared, focusLocked: ownerLocks, meMemberId, parentDevice,
       refreshTick: pollTick + manualTick,
       reloadCore: () => setManualTick(t => t + 1),
